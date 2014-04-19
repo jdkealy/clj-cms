@@ -1,13 +1,15 @@
 # clj-cms
 
-A Clojure library designed to ... well, that part is up to you.
+A Clojure web app designed to manage pages / blog posts / and moderate comments.
 
 ## Usage
 
-FIXME
+git pull
+
+leing ring server
 
 ## License
 
-Copyright © 2014 FIXME
+Copyright © 2014 John Kealy!
 
 Distributed under the Eclipse Public License, the same as Clojure.
