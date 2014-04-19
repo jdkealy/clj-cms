@@ -1,0 +1,26 @@
+body {
+    #background-color:black;
+}
+
+*{
+    font-family:arial black;
+   # color:#fff;
+}
+
+#header{
+    color:#ccc;
+    text-align:center;
+    background-color:white;
+}
+
+.editing{
+    background-color:red;
+    color:blue;
+}
+
+li.item{
+    with:200px;
+    list-style-type: none;
+    border:1px solid;
+    text-align:center;
+}

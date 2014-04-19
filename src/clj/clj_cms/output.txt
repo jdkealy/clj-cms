@@ -1,0 +1,98 @@
+(ns clj-cms.core
+  (:use compojure.core)
+  (:require [compojure.route :as route]
+            [compojure.handler :as handler]
+            [cheshire.core :as cc]
+            [datomic.api :as d]
+            [compojure.response :as response]
+            ))
+
+(def uri "datomic:mem://todos")
+
+;; create database
+(d/create-database uri)
+
+;; connect to database
+(def conn (d/connect uri))
+
+;; parse schema edn file
+(def schema-tx (read-string (slurp "resources/schema/todo-schema.edn")))
+
+;; display first statement
+(first schema-tx)
+
+;; submit schema transaction
+(d/transact conn schema-tx)
+
+(d/tempid :todo)
+
+
+;random int works
+@(d/transact conn [
+                   {:db/id 100  :todo/name "DOING"}
+                   ])
+
+;ivalid id
+@(d/transact conn [
+                   {:db/id (d/tempid :todo) :todo/name "DOING"}
+                   ])
+
+(d/tempid :todo)
+
+;; eager load
+(let [db (d/db conn)]
+  (map
+   #(d/touch (d/entity db (first %)))
+   (d/q
+    '[:find ?e
+      :where
+      [?e :todo/name "DOING"]]
+    db )))
+
+
+;; lazy load
+(d/q
+ '
+ [:find ?e
+ :where
+ [?e :todo/name "DOING"]]
+ (d/db conn))
+
+
+
+
+(defn index-page []{
+    :status 200
+    :headers {"Content-Type" "text/html; charset=utf-8"}
+                    :body (slurp "resources/layout.html")})
+
+(defn todos [] {
+                :status 200
+                :body( cc/generate-string [{
+                                            :id 123
+                                            :title "bar"
+                                            },
+                                           {
+                                            :id 125
+                                            :title "foo"
+                                            }
+                                           ])
+                :headers {"Content-Type" "application/json; charset=utf-8"}})
+
+(defn new-todo [params]
+
+  )
+
+(defn delete-item [id] {
+                        :status 200
+                        :body (cc/generate-string {:success true})
+                        :headers {"Content-Type" "text/json; charset=utf-8"}})
+
+(defroutes app
+  (GET "/" [] (index-page))
+
+  (GET "/todos.json" [] (todos))
+  (POST "/todos.json" [] (new-todo))
+  (DELETE "/todos.json/:id" [id] (delete-item id))
+  (route/resources "/")
+  (route/not-found "<h1>Page not found</h1>"))
