@@ -17,6 +17,7 @@
                  [ring/ring "1.2.2"]
                  [compojure "1.1.6"]
                  [cljs-http "0.1.8"]
+                 [domina "1.0.3-SNAPSHOT"]
                  [fogus/ring-edn "0.2.0"]
                  [com.stuartsierra/component "0.2.1"]
                  [cheshire "4.0.3"]

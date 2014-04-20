@@ -1,12 +1,13 @@
 (ns contacts.core
   (:require-macros [cljs.core.async.macros :refer [go]])
+  (:use [domina :only [by-id value]])
   (:require [goog.dom :as gdom]
             [goog.events :as events]
             [secretary.core :as secretary :include-macros true :refer [defroute]]
             [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
-            [ajax.core :refer [GET POST]]
             [cljs-http.client :as http]
+            [ajax.core :refer [GET POST]]
             [cljs.core.async :refer [>! <! chan put!]])
   (:import [goog History]
            [goog.events EventType]
@@ -24,7 +25,8 @@
 (def app-state (atom {:list []}))
 
 (defn delete-item[app id]
-  (om/transact! app :list (fn [items] (vec  (filter #(not= (:id %) id) items)))))
+  (om/transact! app :list (fn [items] (vec  (filter #(not= (:id %) id) items))))
+  )
 
 (defn item-view [{:keys [id title] :as item} owner opts]
   (reify
@@ -49,15 +51,23 @@
               (dom/h2 nil (:title item))))))
 
 
-(defn add-item-view [owner]
+(defn add-item-view [app]
   (reify
     om/IRender
     (render [this]
-      (dom/form nil
-                (dom/input nil)
-                (dom/button nil "CLICK ME")
-
-                ))))
+      (dom/form
+        #js{
+            :onSubmit (fn [e]
+                        (let [val (value (by-id "todo_name"))]
+                          (go
+                            (let [id 1 response (POST "/todos.json" {:params {:title val}})]
+                              (om/transact! app :list (fn [items]
+                                                        (conj items {:id val :title val}))))))
+                        (.preventDefault e))}
+        (dom/input #js{:id "todo_name"})
+        (dom/button
+         nil
+         "CLICK ME DAMNIT!!")))))
 
 (defn app-view [app owner]
   (reify
@@ -70,8 +80,7 @@
               (om/build add-item-view app)
                (apply dom/ul nil
                       (map (fn [item]
-                             (om/build item-view item {:react-key (:id item) :opts {:on-delete #(delete-item app %)}})
-                             )
+                             (om/build item-view item {:react-key (:id item) :opts {:on-delete #(delete-item app %)}}))
                            (:list app)))))))
 
 (om/root
