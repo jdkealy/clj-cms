@@ -47,7 +47,7 @@
   (let [todo @(d/transact
               config/conn
               [{:todo/name title :db/id #db/id[:db.part/user]}])]
-    (cc/generate-string  todo)))a
+    (cc/generate-string  todo)))
 
 (comment
   (create-todo "FOOBAR")
