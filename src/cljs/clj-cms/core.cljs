@@ -18,15 +18,25 @@
 (defn fetch-items [app]
   (go
     (let [response (<! (http/get "/todos.json"))]
-      (print (:body response))
       (om/update! app :list (:body response)))
     ))
 
 (def app-state (atom {:list []}))
 
 (defn delete-item[app id]
-  (om/transact! app :list (fn [items] (vec  (filter #(not= (:id %) id) items))))
-  )
+  (om/transact! app :list (fn [items] (vec  (filter #(not= (:id %) id) items)))))
+
+(defn add-item [items item]
+  (om/transact! items :list (fn [items] (vec
+                                      (conj items item)
+                            ))))
+
+(defn format-response
+  [res-str]
+  (let [res (-> res-str :body js/JSON.parse js->clj)]
+    (zipmap (map keyword (keys res)) (vals res))))
+
+
 
 (defn item-view [{:keys [id title] :as item} owner opts]
   (reify
@@ -42,7 +52,7 @@
                   :onClick (fn [e]
                              (if (om/get-state owner :editing)
                                (go
-                                 (let [response (<! (http/delete "/todos.json/1"))]
+                                 (let [response (<! (http/delete (str "/todos.json/" id)))]
                                    ((:on-delete opts) id)))
                                (go
                                  (om/set-state! owner :editing true)
@@ -56,14 +66,15 @@
     om/IRender
     (render [this]
       (dom/form
-        #js{
-            :onSubmit (fn [e]
-                        (let [val (value (by-id "todo_name"))]
-                          (go
-                            (let [id 1 response (POST "/todos.json" {:params {:title val}})]
-                              (om/transact! app :list (fn [items]
-                                                        (conj items {:id val :title val}))))))
-                        (.preventDefault e))}
+       #js{:onSubmit
+           (fn [e]
+             (let [val (value (by-id "todo_name"))]
+               (go
+                 (let [res-str (<! (http/post "/todos.json" {:headers {"Content-Type" "application/json"} :body (str (js/JSON.stringify (clj->js  {:title val})))}))
+                       res (format-response res-str)]
+                   (add-item app res)
+                   )))
+             (.preventDefault e))}
         (dom/input #js{:id "todo_name"})
         (dom/button
          nil

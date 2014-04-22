@@ -2,7 +2,7 @@
   (:require
    [datomic.api :as d]))
 
-(def uri "datomic:mem://todos")
+(def uri "datomic:free://localhost:4334/blog")
 
 ;; create database
 (d/create-database uri)

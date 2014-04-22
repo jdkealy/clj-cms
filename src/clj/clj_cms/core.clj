@@ -4,7 +4,8 @@
    [ring.adapter.jetty             :only [run-jetty]]
    [compojure.core                 :only [defroutes GET POST DELETE]]
    [ring.middleware.params         :only [wrap-params]]
-
+   ;[ring.middleware.logger :as log]
+   [ring.middleware file file-info stacktrace reload]
    )
 
   (:require
@@ -29,17 +30,22 @@
   ;todos
   (GET    "/todos.json" [] (todos/index))
   (DELETE "/todos.json/:id" [id] (todos/delete id))
+  (POST "/todos.json" {body :body}
+        (when body
+          (let [title (-> body slurp (cc/parse-string true))]
+            (todos/create title))))
 
-  ; i have a request payload that
-  (POST "/todos.json" {message :params} (str "ThankK  " message))
+
   ;defaults
   (route/resources "/")
   (route/not-found "<h1>Page not found</h1>"))
 
 
-(def app (wrap-params routes))
+(def app (wrap-reload (wrap-params routes)))
 
-(defn -main []
-  (run-jetty app {:port 3001}))
+#_(defn -main []
+  (run-jetty app {:port 3001
+                  :auto-reload? true
+                  }))
 
-(-main)
+;(-main)

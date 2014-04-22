@@ -18,11 +18,13 @@
                  [compojure "1.1.6"]
                  [cljs-http "0.1.8"]
                  [domina "1.0.3-SNAPSHOT"]
+                 [ring.middleware.logger "0.4.0"]
                  [fogus/ring-edn "0.2.0"]
                  [com.stuartsierra/component "0.2.1"]
                  [cheshire "4.0.3"]
                  [org.clojure/core.async "0.1.278.0-76b25b-alpha"]]
-  :ring {:handler clj-cms.core/app}
+  :ring {:handler clj-cms.core/app
+         :auto-reload? true}
   :cljsbuild {:builds [{
                         :source-paths ["src/cljs"]
                         :compiler {
