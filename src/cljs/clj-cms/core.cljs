@@ -1,6 +1,6 @@
 (ns contacts.core
   (:require-macros [cljs.core.async.macros :refer [go]])
-  (:use [domina :only [by-id value]])
+  (:use [domina :only [by-id value set-value!]])
   (:require [goog.dom :as gdom]
             [goog.events :as events]
             [secretary.core :as secretary :include-macros true :refer [defroute]]
@@ -46,7 +46,7 @@
     om/IRender
     (render [this]
       (dom/li #js{
-                  :className (str "item" (if (om/get-state owner :editing)
+                  :className (str "row-fluid item well" (if (om/get-state owner :editing)
                                            " editing"
                                            ""))
                   :onClick (fn [e]
@@ -56,29 +56,14 @@
                                    ((:on-delete opts) id)))
                                (go
                                  (om/set-state! owner :editing true)
-                                 (.setTimeout js/window #(om/set-state! owner :editing false) 10000))))}
-              (dom/h2 nil (:id item))
-              (dom/h2 nil (:name item))))))
+                                 (.setTimeout js/window #(om/set-state! owner :editing false) 1000))))}
+              (dom/br nil)
+              (dom/h2 nil (:name item))
+              (dom/br nil)
+              (dom/p #js{:className "pull-right item-id"} (:id item))
+              ))))
 
 
-(defn add-item-view [app]
-  (reify
-    om/IRender
-    (render [this]
-      (dom/form
-       #js{:onSubmit
-           (fn [e]
-             (let [val (value (by-id "todo_name"))]
-               (go
-                 (let [res-str (<! (http/post "/todos.json" {:headers {"Content-Type" "application/json"} :body (str (js/JSON.stringify (clj->js  {:name val})))}))
-                       res (format-response res-str)]
-                   (add-item app res)
-                   )))
-             (.preventDefault e))}
-        (dom/input #js{:id "todo_name"})
-        (dom/button
-         nil
-         "ADD TODO")))))
 
 (defn app-view [app owner]
   (reify
@@ -88,8 +73,10 @@
     om/IRender
     (render [this]
       (dom/div nil
-              (om/build add-item-view app)
-               (apply dom/ul nil
+              ;(om/build add-item-view app)
+               (apply dom/ul #js{
+                                 :className "container-fluid"
+                                 }
                       (map (fn [item]
                              (om/build item-view item {:react-key (:id item) :opts {:on-delete #(delete-item app %)}}))
                            (:list app)))))))
@@ -98,3 +85,49 @@
  app-view
  app-state
  {:target (. js/document (getElementById "app"))})
+
+(defn add-item-view [app]
+  (reify
+    om/IRender
+    (render [this]
+      (dom/form
+       #js{
+           :className "navbar-form navbar-left"
+           :onSubmit
+           (fn [e]
+             (let [val (value (by-id "todo_name"))]
+               (when (not (= val ""))
+                 (go
+                   (set-value! (by-id "todo_name") "")
+                   (let [res-str (<! (http/post "/todos.json" {:headers {"Content-Type" "application/json"} :body (str (js/JSON.stringify (clj->js  {:name val})))}))
+                         res (format-response res-str)]
+                     (add-item app res)
+                     ))))
+             (.preventDefault e))}
+       (dom/div #js{
+                    :className "form-group"}
+                (dom/input #js{
+                               :id "todo_name"
+                               :className "form-control"
+                               :placeholder "todo"}))
+       (dom/button #js{
+                       :type "submit"
+                       :className "btn btn-default"}
+         "Submit")))))
+(om/root
+ add-item-view
+ app-state
+ {:target (. js/document (getElementById "add-todo"))})
+
+
+(defn todos-count [app]
+  (reify
+    om/IRender
+    (render [this]
+      (dom/div nil
+               (count (:list app))))))
+
+(om/root
+ todos-count
+ app-state
+ {:target (. js/document (getElementById "todos-count"))})

@@ -24,3 +24,13 @@ li.item{
     border:1px solid;
     text-align:center;
 }
+
+li .item-id{
+    font-size: 8px;
+    font-weight:normal;
+    font-style:italic;
+}
+
+li.item{
+    cursor:pointer;
+}
