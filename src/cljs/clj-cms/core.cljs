@@ -38,7 +38,7 @@
 
 
 
-(defn item-view [{:keys [id title] :as item} owner opts]
+(defn item-view [{:keys [id name] :as item} owner opts]
   (reify
     om/IInitState
     (init-state [_]
@@ -58,7 +58,7 @@
                                  (om/set-state! owner :editing true)
                                  (.setTimeout js/window #(om/set-state! owner :editing false) 10000))))}
               (dom/h2 nil (:id item))
-              (dom/h2 nil (:title item))))))
+              (dom/h2 nil (:name item))))))
 
 
 (defn add-item-view [app]
@@ -70,7 +70,7 @@
            (fn [e]
              (let [val (value (by-id "todo_name"))]
                (go
-                 (let [res-str (<! (http/post "/todos.json" {:headers {"Content-Type" "application/json"} :body (str (js/JSON.stringify (clj->js  {:title val})))}))
+                 (let [res-str (<! (http/post "/todos.json" {:headers {"Content-Type" "application/json"} :body (str (js/JSON.stringify (clj->js  {:name val})))}))
                        res (format-response res-str)]
                    (add-item app res)
                    )))
@@ -78,7 +78,7 @@
         (dom/input #js{:id "todo_name"})
         (dom/button
          nil
-         "CLICK ME DAMNIT!!")))))
+         "ADD TODO")))))
 
 (defn app-view [app owner]
   (reify

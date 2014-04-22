@@ -3,7 +3,6 @@
             [cheshire.core :as cc]
             [datomic.api :as d]
             [cheshire.core :refer :all]
-            [cheshire.generate :refer [add-encoder encode-map]]
             [clj-cms.config :as config]
             [compojure.response :as response]))
 
@@ -16,12 +15,13 @@
   )
 
 (comment
- (get-todos))
+  (get-todos)
+  )
 
 (defn get-todos-to-json []
   (let [todos (get-todos)]
     (vec  (map
-           (fn [i] {:title (first i)
+           (fn [i] {:name (first i)
                    :id    (last i)
                    }) todos))))
 
@@ -30,40 +30,36 @@
   )
 
 (defn get-todo [id]
-  (d/touch (d/entity (d/db config/conn) id)))
+  (let [todo
+        (d/touch (d/entity (d/db config/conn) id))
+        ]
+    {:name (:todo/name todo) :id (:db/id todo)}))
 
 (comment
-                                        ; get a todo
-  (get-todo 17592186045424)
-  (get-todo 17592186045456)
-  (get-todo 17592186045456)
-  (get-todo 17592186045468)
-  (get-todo 17592186045424)
-  (get-todo 17592186045442)
   (get-todo 17592186045459)
-  (d/touch (d/entity (d/db config/conn) 17592186045442)))
+  )
 
-(defn create-todo [title]
-  (let [todo @(d/transact
+(defn create-todo [name]
+  (let [
+        todo @(d/transact
               config/conn
-              [{:todo/name title :db/id #db/id[:db.part/user]}])]
-    (cc/generate-string  todo)))
+              [{:todo/name name :db/id #db/id[:db.part/user]}])
+        ;created-todo
+        ]
+    (get-todo (first (vals (:tempids todo))))
+    ;created-todo
+    ))
 
 (comment
   (create-todo "FOOBAR")
   )
+
 
 (defn delete-todo [id]
   @(d/transact config/conn [[:db.fn/retractEntity (read-string id)]])
   {:success true})
 
 (comment
-  (delete-todo 17592186045459)
-  (delete-todo 17592186045428)
-  (delete-todo 17592186045456)
-  (delete-todo 17592186045468)
-  (delete-todo 17592186045436)
-  (delete-todo 17592186045424)
   (delete-todo 17592186045442)
   )
 
@@ -79,7 +75,7 @@
         :headers {"Content-Type" "text/json; charset=utf-8"}}))
 
 (defn create [todo]
-  (let [todo (create-todo (:title todo))]
+  (let [todo (create-todo (:name todo))]
     {:status 200
      :body (cc/generate-string todo)
      :headers {"Content-Type" "text/json; charset=utf-8"}}))
