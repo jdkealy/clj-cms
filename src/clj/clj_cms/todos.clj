@@ -39,6 +39,18 @@
   (get-todo 17592186045459)
   )
 
+(defn update-todo [id name]
+  (let [
+        todo @(d/transact
+               config/conn
+               [{:todo/name name :db/id id}])
+        ]
+    (get-todo id)))
+
+(comment
+  (update-todo 17592186045850 "BARFOO")
+  )
+
 (defn create-todo [name]
   (let [
         todo @(d/transact
@@ -47,7 +59,6 @@
         ;created-todo
         ]
     (get-todo (first (vals (:tempids todo))))
-    ;created-todo
     ))
 
 (comment
@@ -78,12 +89,14 @@
   (let [todo (create-todo (:name todo))]
     {:status 200
      :body (cc/generate-string todo)
-     :headers {"Content-Type" "text/json; charset=utf-8"}}))
+     :headers {"Content-Type" "text/json; charset=utf-8"}}
+    ))
 
-(defn update []
-  {:status 200
-   :body (cc/generate-string {:success true})
-   :headers {"Content-Type" "text/json; charset=utf-8"}})
+(defn update [id updates]
+  (let [new-obj (assoc updates :id id)]
+        {:status 200
+         :body (cc/generate-string (update-todo (read-string  id) (:name updates)))
+         :headers {"Content-Type" "text/json; charset=utf-8"}}))
 
 (defn show []
   {:status 200

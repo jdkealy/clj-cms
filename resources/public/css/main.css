@@ -33,4 +33,5 @@ li .item-id{
 
 li.item{
     cursor:pointer;
+    height:200px;
 }

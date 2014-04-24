@@ -10,16 +10,14 @@
             [ajax.core :refer [GET POST]]
             [cljs.core.async :refer [>! <! chan put!]])
   (:import [goog History]
-           [goog.events EventType]
-          ))
+           [goog.events EventType]))
 
 (enable-console-print!)
 
 (defn fetch-items [app]
   (go
     (let [response (<! (http/get "/todos.json"))]
-      (om/update! app :list (:body response)))
-    ))
+      (om/update! app :list (:body response)))))
 
 (def app-state (atom {:list []}))
 
@@ -28,42 +26,72 @@
 
 (defn add-item [items item]
   (om/transact! items :list (fn [items] (vec
-                                      (conj items item)
-                            ))))
-
+                                      (conj items item)))))
 (defn format-response
   [res-str]
   (let [res (-> res-str :body js/JSON.parse js->clj)]
     (zipmap (map keyword (keys res)) (vals res))))
 
+(defn handle-editing [_ owner]
+  (om/set-state! owner :editing))
 
+(defn on-edit [id title]
+  (om/set-state! owner :mark-deletion))
+
+(defn update-title [item title owner id]
+  (print id)
+  (om/update! item :name title)
+  (om/set-state! owner :text title)
+  (go (let [res-str (<! (http/put (str "/todos.json/" id) {:headers {"Content-Type" "application/json"} :body (str (js/JSON.stringify (clj->js  {:name title})))}))
+          res (format-response res-str)]
+      )))
 
 (defn item-view [{:keys [id name] :as item} owner opts]
   (reify
     om/IInitState
     (init-state [_]
-      {:editing false})
-    om/IRender
-    (render [this]
+      {
+       :text (:name item)
+       :mark-deletion false
+       :editing false
+       })
+    om/IRenderState
+    (render-state [this state]
       (dom/li #js{
-                  :className (str "row-fluid item well" (if (om/get-state owner :editing)
+                  :className (str "row-fluid item well" (if (om/get-state owner :mark-deletion)
                                            " editing"
                                            ""))
                   :onClick (fn [e]
-                             (if (om/get-state owner :editing)
+                             (if (om/get-state owner :mark-deletion)
                                (go
                                  (let [response (<! (http/delete (str "/todos.json/" id)))]
                                    ((:on-delete opts) id)))
                                (go
-                                 (om/set-state! owner :editing true)
-                                 (.setTimeout js/window #(om/set-state! owner :editing false) 1000))))}
+                                 (om/set-state! owner :mark-deletion true)
+                                 (.setTimeout js/window #(om/set-state! owner :mark-deletion false) 1000))))}
+              (dom/button #js{
+                              :className "pull-right btn"
+                              :onClick (fn [e]
+                                         (om/set-state! owner :editing true))} "edit")
               (dom/br nil)
-              (dom/h2 nil (:name item))
+              (if (om/get-state owner :editing)
+                (dom/input #js{
+                               :id "editing_todo"
+                               :type "text"
+                               :onClick (fn [e] false )
+                               :value (:text state)
+                               :onChange #([e] (
+                                                print "OK"))
+                               :onKeyPress #(when (and (om/get-state owner :editing)
+                                                       (== (.-keyCode %) 13))
+
+                                              (let [val (value (by-id "editing_todo"))]
+                                                (update-title item val owner id))
+                                              (om/set-state! owner :editing false))
+                               :className "input"})
+                (dom/h2 nil (:name item)))
               (dom/br nil)
-              (dom/p #js{:className "pull-right item-id"} (:id item))
-              ))))
-
-
+              (dom/p #js{:className "pull-right item-id"} (:id item))))))
 
 (defn app-view [app owner]
   (reify

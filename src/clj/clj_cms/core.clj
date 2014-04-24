@@ -2,7 +2,7 @@
   (:use
 
    [ring.adapter.jetty             :only [run-jetty]]
-   [compojure.core                 :only [defroutes GET POST DELETE]]
+   [compojure.core                 :only [defroutes GET POST DELETE PUT]]
    [ring.middleware.params         :only [wrap-params]]
    ;[ring.middleware.logger :as log]
    [ring.middleware file file-info stacktrace reload]
@@ -29,11 +29,17 @@
   (GET "/" [] (index-page))
   ;todos
   (GET    "/todos.json" [] (todos/index))
+  (PUT    "/todos.json/:id" {{:keys [id]} :params body :body}
+          (when body
+            (let [params (-> body slurp (cc/parse-string true))]
+              (todos/update id params))))
+
   (DELETE "/todos.json/:id" [id] (todos/delete id))
   (POST "/todos.json" {body :body}
         (when body
           (let [title (-> body slurp (cc/parse-string true))]
-            (todos/create title))))
+            (todos/create title)))
+        )
 
 
   ;defaults
@@ -42,10 +48,3 @@
 
 
 (def app (wrap-reload (wrap-params routes)))
-
-#_(defn -main []
-  (run-jetty app {:port 3001
-                  :auto-reload? true
-                  }))
-
-;(-main)
