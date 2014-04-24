@@ -7,13 +7,14 @@ A Clojure web app originally intended to be a fully-fledged CMS, but is just a s
 git pull
 
 lein ring server
+
 lein cljsbuild auto
 
 you must download datomic
-unzip it and start a transactor from the datomic directory like so:
-./bin/transactor config/samples/free-transactor-template.properties 
 
-(start-transactor (unzip datomic.zip) port version host)
+unzip it and start a transactor from the datomic directory like so:
+
+./bin/transactor config/samples/free-transactor-template.properties 
 
 
    
